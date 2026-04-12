@@ -30,8 +30,16 @@ public class BeginPanel : BasePanel
                     anim.PlayShake();
                 return;
             }
-                
-            //之后会在这里 隐藏自己，显示选角面板
+
+            //隐藏开始界面
+            UIManager.Instance.HidePanel<BeginPanel>();
+
+            //播放摄像机开始动画，再显示选角面板
+            Camera.main.GetComponent<CameraAnimator>().BeginGame(() =>
+            {
+                //显示选角面板
+                print("选角面板");
+            });
         });
 
         btnSetting.onClick.AddListener(() =>
