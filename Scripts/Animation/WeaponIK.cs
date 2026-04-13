@@ -27,7 +27,7 @@ public class WeaponIK : MonoBehaviour
     //前提：Animator Controller 的对应的Layer必须勾选 IK Pass
     void OnAnimatorIK(int layerIndex)
     {
-         Debug.Log("OnAnimatorIK 被调用了");
+        Debug.Log("OnAnimatorIK 被调用了");
         if (animator == null || leftHandIKTarget == null)
             return;
 
