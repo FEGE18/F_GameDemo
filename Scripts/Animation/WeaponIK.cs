@@ -19,6 +19,7 @@ public class WeaponIK : MonoBehaviour
     void Start()
     {
         animator = this.GetComponent<Animator>();
+        animator = this.GetComponent<Animator>();
     }
 
     //Animator 在每帧计算完常规动画后、应用到骨骼前的那个间隙调用OnAnimatorIK
