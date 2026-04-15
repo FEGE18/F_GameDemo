@@ -27,6 +27,9 @@ public class GameDataMgr
     //玩家相关数据
     public PlayerData playerData;
 
+    //场景数据
+    public List<SceneInfo> sceneInfoList;
+
     private GameDataMgr()
     {
         //默认初始化一些数据
@@ -35,6 +38,8 @@ public class GameDataMgr
         roleInfoList = JsonMgr.Instance.LoadData<List<RoleInfo>>("RoleInfo");
         //获取玩家相关数据
         playerData = JsonMgr.Instance.LoadData<PlayerData>("PlayerData");
+        //获取场景数据
+        sceneInfoList = JsonMgr.Instance.LoadData<List<SceneInfo>>("SceneInfo");
     }
 
     public void SaveMusicData()
