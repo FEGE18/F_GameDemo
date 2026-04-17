@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class AnimationExitState : StateMachineBehaviour
 {
+    //对animator.GetFloat类似函数的优化，这些函数底层都是通过字符串转Hash值(int)来查找的
+    //底层调用的都是重载Hash查找的方法。而Hash值始终不变且唯一，所以用readonly和static
+    //这样就可以提高一些性能，由我们自己调用转换，而不是引擎调用
     private static readonly int HashIsAttacking = Animator.StringToHash("IsAttacking");
     private static readonly int HashFireExitTime = Animator.StringToHash("FireExitTime");
     /// <summary>
@@ -27,6 +30,10 @@ public class AnimationExitState : StateMachineBehaviour
     {
         // 参数 FireExitTime —— 这个值是外部（武器系统）设的，枪械设 0.45，刀设 0.9。
         float exitTime = animator.GetFloat(HashFireExitTime);
+
+        // exitTime <= 0 表示外部控制，不自动退出
+        if (exitTime <= 0f)
+            return;
 
         //stateInfo.normalizedTime 就是"当前动画播到了百分之几"：
         /*normalizedTime 值	含义
