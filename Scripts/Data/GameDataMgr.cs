@@ -18,6 +18,9 @@ public class GameDataMgr
         }
     }
 
+    //记录选择的角色数据，用于之后的游戏场景中的创建
+    public RoleInfo nowSelRole;
+
     //音乐相关数据
     public MusicData musicData;
 

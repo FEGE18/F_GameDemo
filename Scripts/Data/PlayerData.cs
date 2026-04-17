@@ -8,7 +8,7 @@ using UnityEngine;
 public class PlayerData
 {
     //当前有多少游戏币
-    public int haveMoney = 0;
+    public int haveMoney = 300;
     //当前解锁了哪些角色
     public List<int> buyHero = new List<int>();
 

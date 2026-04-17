@@ -38,7 +38,7 @@ public class BeginPanel : BasePanel
             Camera.main.GetComponent<CameraAnimator>().BeginGame(() =>
             {
                 //显示选角面板
-                print("选角面板");
+                UIManager.Instance.ShowPanel<ChooseHeroPanel>();
             });
         });
 

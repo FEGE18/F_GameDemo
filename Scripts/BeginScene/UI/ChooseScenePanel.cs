@@ -28,12 +28,14 @@ public class ChooseScenePanel : BasePanel
             --_nowIndex;
             if (_nowIndex < 0)
                 _nowIndex = maxCount - 1;
+            ChangeScene();
         });
 
         btnRight.onClick.AddListener(() =>
         {
             ++_nowIndex;
             if (_nowIndex >= maxCount) _nowIndex = 0;
+            ChangeScene();
         });
 
         btnStart.onClick.AddListener(() =>
