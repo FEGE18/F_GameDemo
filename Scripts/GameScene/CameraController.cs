@@ -1,9 +1,23 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
+    public enum CameraMode
+    {
+        Tactical,   //战术模式
+        Fixed,      //固定机位
+        OTS         //战斗模式
+    }
+
+    [Header("模式")]
+    public CameraMode currentMode = CameraMode.Tactical;
+
+    //固定机位的目标位置
+    private Transform fixedPoint;
+
     //在 Inspector 里拖入玩家角色
     [Header("跟随目标")]
     public Transform target;
@@ -28,6 +42,7 @@ public class CameraController : MonoBehaviour
     [Header("旋转")]
     public float rotateSpeed = 3f;  //鼠标灵敏度
     private float currentYaw;       //当前水平旋转角度
+    public float fixedRotateSpeed = 5f; //固定模式下镜头旋转速度
 
     [Header("遮挡检测")]
     public LayerMask obstacleMask;
@@ -46,10 +61,31 @@ public class CameraController : MonoBehaviour
 
         if (target == null) return;
 
+        switch (currentMode)
+        {
+            case CameraMode.Tactical:
+                UpdateTactical();
+                break;
+            case CameraMode.Fixed:
+                UpdateFixed();
+                break;
+            case CameraMode.OTS:
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 战术视角的LateUpdate逻辑
+    /// </summary>
+    private void UpdateTactical()
+    {
         HandleZoom();
 
         //摄像机最终目标位置
         Vector3 desiredPosition = CalculateTacticalPosition();
+
+        //检测摄像机是否被遮挡
+        desiredPosition = CheckOcclusion(desiredPosition);
 
         //SmoothDamp会完全到达目标位置，且不依赖帧率。效果是远快近慢
         transform.position = Vector3.SmoothDamp(
@@ -60,6 +96,24 @@ public class CameraController : MonoBehaviour
 
         //让摄像机看向角色
         transform.LookAt(target.position + Vector3.up * 1f);
+    }
+
+    /// <summary>
+    /// 固定视角的LateUpdate逻辑
+    /// </summary>
+    private void UpdateFixed()
+    {
+        if (fixedPoint == null) return;
+        //
+        transform.position = Vector3.SmoothDamp(transform.position, fixedPoint.position,
+                                                   ref currentVelocity, followSmooth);
+
+        //
+        transform.rotation = Quaternion.Slerp(
+                                            transform.rotation,                 //起始旋转角度
+                                            fixedPoint.rotation,                //目标角度
+                                            Time.deltaTime * fixedRotateSpeed); //插值比例，与帧率无关
+
     }
 
     /// <summary>
@@ -106,5 +160,59 @@ public class CameraController : MonoBehaviour
         return target.position + offset;
     }
 
+    /// <summary>
+    /// 检测摄像机是否被遮挡
+    /// </summary>
+    /// <param name="desiredPosition">摄像机此时所在位置</param>
+    /// <returns></returns>
+    private Vector3 CheckOcclusion(Vector3 desiredPosition)
+    {
+        //射线检测是从玩家射向镜头的
+        //所以要算出玩家位置指向镜头位置的向量
+        Vector3 dirToCamera = desiredPosition - target.position;
+        //向量的长度，即距离。 后面射线用它做"最大检测距离"——不需要检测比摄像机更远的物体
+        float distToCamera = dirToCamera.magnitude;
 
+        // ② 射线起点  从角色脚底抬高1m
+        Vector3 rayOrigin = target.position + Vector3.up * 1f;
+
+        /* === 调试用：在Scene视图画出射线 ===
+        Debug.DrawRay(rayOrigin, dirToCamera.normalized * distToCamera, Color.red);*/
+
+        //发射射线
+        if (Physics.Raycast(rayOrigin,  //从哪发射
+        dirToCamera.normalized,         //往哪个方向发射，把方向向量变成单位向量
+        out RaycastHit hit,             //碰撞结构存到hit里，out 关键字的意思是"这个变量由函数内部赋值返回"
+        distToCamera,                   //最大检测距离
+        obstacleMask))                  //只检测这些层
+        {
+            /* === 调试用：碰到东西时画绿色线段 + 打印碰到了什么 ===
+            Debug.DrawLine(rayOrigin, hit.point, Color.green);
+            Debug.Log($"射线碰到了: {hit.collider.gameObject.name}, Layer: {hit.collider.gameObject.layer}");*/
+
+            //有遮挡：拉近摄像机
+            return hit.point - dirToCamera.normalized * 0.3f;
+        }
+        //无遮挡：保持原位
+        return desiredPosition;
+    }
+
+    /// <summary>
+    /// 提供给外部切换到固定模式的方法
+    /// </summary>
+    /// <param name="point">进入点即镜头点的位置</param>
+    public void EnterFixedMode(Transform point)
+    {
+        currentMode = CameraMode.Fixed;
+        fixedPoint = point;
+    }
+
+    /// <summary>
+    /// 给外部离开固定模式的方法
+    /// </summary>
+    public void ExitFixedMode()
+    {
+        currentMode = CameraMode.Tactical;
+        fixedPoint = null;
+    }
 }
