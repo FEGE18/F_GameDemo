@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    private CameraController cameraController;
     private Animator animator;
 
     [Header("输入平滑")]
@@ -29,6 +30,7 @@ public class PlayerController : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         controller = GetComponent<CharacterController>();
+        cameraController = Camera.main.GetComponent<CameraController>();
     }
 
     // Update is called once per frame
@@ -71,6 +73,22 @@ public class PlayerController : MonoBehaviour
 
     private void HandleRotation()
     {
+        // === OTS 模式：角色始终面朝摄像机方向 ===
+        if (cameraController.CurrentMode == CameraController.CameraMode.OTS)
+        {
+            /*什么 OTS 模式下用 Quaternion.Euler(0, otsYaw, 0) 而不直接用摄像机的 rotation？
+            因为摄像机有 pitch（上下看），但角色不应该上下倾斜——角色只需要水平方向跟着转。
+            把 pitch 设为 0、只用 yaw，角色就只左右转，不会歪倒。*/
+            Quaternion targetRotation = Quaternion.Euler(0, cameraController.OTSYaw, 0);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                turnSpeed * Time.deltaTime
+            );
+            return;  // OTS模式处理完直接返回，不走下面的战术模式逻辑
+        }
+
+        // === 战术模式：===
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
         //角色转向,注意：只有朝前走的时候才转向，朝后走不转向

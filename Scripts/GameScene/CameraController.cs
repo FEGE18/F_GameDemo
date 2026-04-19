@@ -12,6 +12,9 @@ public class CameraController : MonoBehaviour
         Fixed,      //固定机位
         OTS         //战斗模式
     }
+    //让外部读取当前模式和 OTS 的水平角度
+    public CameraMode CurrentMode => currentMode;
+    public float OTSYaw => otsYaw;
 
     [Header("模式")]
     public CameraMode currentMode = CameraMode.Tactical;
@@ -55,10 +58,13 @@ public class CameraController : MonoBehaviour
     public float otsDistance = 1.5f;    // 摄像机在角色身后多远
     public float otsHeight = 1.5f;      //摄像机比角色高多少（大约肩膀高度）
     public float otsRightOffset = 2f;   // 摄像机往右偏移多少（过肩效果）
-    public float otsMouseSensitivity = 1f; //鼠标灵敏度
+    public float otsHMouseSensitivity = 1f; //水平鼠标灵敏度
+    public float otsVMouseSensitivity = 1f; //竖直鼠标灵敏度
 
     private float otsYaw;               // OTS 水平旋转角度
     private float otsPitch;             // OTS 垂直旋转角度（俯仰）
+    [Range(0.01f, 1f)]
+    public float otsFollowSmooth = 0.02f;  // OTS 模式的跟随平滑度（比战术模式更小=更紧）
 
 
     void Start()
@@ -70,6 +76,19 @@ public class CameraController : MonoBehaviour
     {
 
         if (target == null) return;
+
+        // === 模式切换 ===
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            if (currentMode == CameraMode.Tactical)
+            {
+                EnterOTSMode();
+            }
+            else if (currentMode == CameraMode.OTS)
+            {
+                EnterTacticalMode();
+            }
+        }
 
         switch (currentMode)
         {
@@ -144,14 +163,38 @@ public class CameraController : MonoBehaviour
     /// </summary>
     private void UpdateOTS()
     {
-        float mouseX = Input.GetAxis("Mouse X") * otsMouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * otsMouseSensitivity;
+        float mouseX = Input.GetAxis("Mouse X") * otsHMouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * otsVMouseSensitivity;
 
         otsYaw += mouseX;   //水平旋转
         //垂直旋转，Unity 的 Mouse Y 鼠标往上移返回正值。
         //但旋转里，pitch 增大是低头（往下看）。所以要取反：鼠标上移 → pitch 减小 → 抬头看天。
         otsPitch -= mouseY;
         otsPitch = Mathf.Clamp(otsPitch, -30f, 60f); // 限制俯仰角度
+
+        /***第2步 根据旋转角度计算摄像机位置***/
+        //
+        Quaternion rotation = Quaternion.Euler(otsPitch, otsYaw, 0);
+
+        // 摄像机在角色身后的方向（旋转后的"后方"）
+        Vector3 backDir = rotation * Vector3.back;   // 身后方向
+        Vector3 rightDir = rotation * Vector3.right; // 右方向
+
+        // 摄像机目标位置 = 角色位置 + 后方偏移 + 上方偏移 + 右肩偏移
+        Vector3 targetPos = target.position
+            + Vector3.up * otsHeight          // 先抬高到肩膀高度
+            + backDir * otsDistance            // 再往身后拉
+            + rightDir * otsRightOffset;       // 再往右偏移（过肩效果)
+
+        // === 碰撞检测（防穿墙）===
+        targetPos = CheckOcclusion(targetPos);
+
+        // === 第3步：平滑移动 + 设置朝向 ===
+        // 平滑移动
+        transform.position = targetPos;
+
+        // 摄像机朝向 = 直接用鼠标控制的旋转
+        transform.rotation = rotation;
     }
     /// <summary>
     /// 计算俯瞰模式的摄像机目标位置，及处理按住右键旋转鼠标改变角度的方法
@@ -239,5 +282,36 @@ public class CameraController : MonoBehaviour
     {
         currentMode = CameraMode.Tactical;
         fixedPoint = null;
+    }
+
+    /// <summary>
+    /// 切换到 OTS 模式
+    /// </summary>
+    private void EnterOTSMode()
+    {
+        currentMode = CameraMode.OTS;
+
+        // 初始化 OTS 旋转角度为当前摄像机的朝向（避免切换时跳转）
+        otsYaw = currentYaw;
+        otsPitch = 0f;
+
+        // 锁定并隐藏光标
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    /// <summary>
+    /// 切换回战术模式
+    /// </summary>
+    private void EnterTacticalMode()
+    {
+        currentMode = CameraMode.Tactical;
+
+        // 同步旋转角度（避免切换时跳转）
+        currentYaw = otsYaw;
+
+        // 解锁并显示光标
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 }
