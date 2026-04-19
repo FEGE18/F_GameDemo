@@ -10,7 +10,8 @@ public class CameraController : MonoBehaviour
     {
         Tactical,   //战术模式
         Fixed,      //固定机位
-        OTS         //战斗模式
+        OTS,         //战斗模式
+        Transitioning //过渡中
     }
     //让外部读取当前模式和 OTS 的水平角度
     public CameraMode CurrentMode => currentMode;
@@ -63,8 +64,18 @@ public class CameraController : MonoBehaviour
 
     private float otsYaw;               // OTS 水平旋转角度
     private float otsPitch;             // OTS 垂直旋转角度（俯仰）
-    [Range(0.01f, 1f)]
-    public float otsFollowSmooth = 0.02f;  // OTS 模式的跟随平滑度（比战术模式更小=更紧）
+
+    [Header("过渡")]
+    //过渡时间
+    public float transitionDuration = 0.3f;
+    //过渡完成后要进入的模式
+    private CameraMode targetMode;
+    //过渡起始位置
+    private Vector3 transitionStartPos;
+    // 过渡起始旋转
+    private Quaternion transitionStartRot;  
+    // 过渡计时器
+    private float transitionTimer;          
 
 
     void Start()
@@ -100,6 +111,9 @@ public class CameraController : MonoBehaviour
                 break;
             case CameraMode.OTS:
                 UpdateOTS();
+                break;
+            case CameraMode.Transitioning:
+                UpdateTransition();
                 break;
         }
     }
@@ -196,6 +210,46 @@ public class CameraController : MonoBehaviour
         // 摄像机朝向 = 直接用鼠标控制的旋转
         transform.rotation = rotation;
     }
+
+    private void UpdateTransition()
+    {
+        transitionTimer += Time.deltaTime;
+        float t = Mathf.Clamp01(transitionTimer / transitionDuration);
+
+        //
+        t = Mathf.SmoothStep(0, 1, t);
+
+        //
+        Vector3 targetPos;
+        Quaternion targetRot;
+
+        if (targetMode == CameraMode.OTS)
+        {
+            //算出 OTS 目标位置（复用 OTS 的计算逻辑）
+            Quaternion rotation = Quaternion.Euler(otsPitch, otsYaw, 0);
+            Vector3 backDir = rotation * Vector3.back;
+            Vector3 rightDir = rotation * Vector3.right;
+            targetPos = target.position + Vector3.up * otsHeight + backDir * otsDistance + rightDir * otsRightOffset;
+            targetRot = rotation;
+        }
+        else// 回到 Tactical
+        {
+            targetPos = CalculateTacticalPosition();
+            targetRot = Quaternion.LookRotation(target.position + Vector3.up * 1f - targetPos);
+
+        }
+
+        // 插值
+        transform.position = Vector3.Lerp(transitionStartPos, targetPos, t);
+        transform.rotation = Quaternion.Slerp(transitionStartRot, targetRot, t);
+
+        //过渡完成
+        if(t >= 1f)
+        {
+            currentMode = targetMode;
+        }
+    } 
+    
     /// <summary>
     /// 计算俯瞰模式的摄像机目标位置，及处理按住右键旋转鼠标改变角度的方法
     /// </summary>
@@ -289,7 +343,12 @@ public class CameraController : MonoBehaviour
     /// </summary>
     private void EnterOTSMode()
     {
-        currentMode = CameraMode.OTS;
+        targetMode = CameraMode.OTS;
+        //新增过渡方法
+        currentMode = CameraMode.Transitioning;
+        transitionStartPos = transform.position;
+        transitionStartRot = transform.rotation;
+        transitionTimer = 0f;
 
         // 初始化 OTS 旋转角度为当前摄像机的朝向（避免切换时跳转）
         otsYaw = currentYaw;
@@ -305,7 +364,12 @@ public class CameraController : MonoBehaviour
     /// </summary>
     private void EnterTacticalMode()
     {
-        currentMode = CameraMode.Tactical;
+        targetMode = CameraMode.Tactical;
+         //新增过渡方法
+        currentMode = CameraMode.Transitioning;
+        transitionStartPos = transform.position;
+        transitionStartRot = transform.rotation;
+        transitionTimer = 0f;
 
         // 同步旋转角度（避免切换时跳转）
         currentYaw = otsYaw;

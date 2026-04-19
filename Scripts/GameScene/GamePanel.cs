@@ -20,6 +20,9 @@ public class GamePanel : BasePanel
 
     //管理3个复合控件
     public List<TowerBtn> towerBtns = new List<TowerBtn>();
+
+    //射击点十字准星
+    public Image imgCrosshair;
     protected override void Init()
     {
         //监听按钮事件
