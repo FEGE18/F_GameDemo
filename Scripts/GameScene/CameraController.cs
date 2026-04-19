@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class CameraController : MonoBehaviour
@@ -50,6 +51,15 @@ public class CameraController : MonoBehaviour
     //给SmoothDamp函数当作记录帧与帧之间速度状态的参数
     private Vector3 currentVelocity;
 
+    [Header("OTS模式")]
+    public float otsDistance = 1.5f;    // 摄像机在角色身后多远
+    public float otsHeight = 1.5f;      //摄像机比角色高多少（大约肩膀高度）
+    public float otsRightOffset = 2f;   // 摄像机往右偏移多少（过肩效果）
+    public float otsMouseSensitivity = 1f; //鼠标灵敏度
+
+    private float otsYaw;               // OTS 水平旋转角度
+    private float otsPitch;             // OTS 垂直旋转角度（俯仰）
+
 
     void Start()
     {
@@ -70,6 +80,7 @@ public class CameraController : MonoBehaviour
                 UpdateFixed();
                 break;
             case CameraMode.OTS:
+                UpdateOTS();
                 break;
         }
     }
@@ -128,6 +139,20 @@ public class CameraController : MonoBehaviour
         tacticalDistance = Mathf.Clamp(tacticalDistance, minDistance, maxDistance);
     }
 
+    /// <summary>
+    /// OST视角的Lateupdate逻辑
+    /// </summary>
+    private void UpdateOTS()
+    {
+        float mouseX = Input.GetAxis("Mouse X") * otsMouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * otsMouseSensitivity;
+
+        otsYaw += mouseX;   //水平旋转
+        //垂直旋转，Unity 的 Mouse Y 鼠标往上移返回正值。
+        //但旋转里，pitch 增大是低头（往下看）。所以要取反：鼠标上移 → pitch 减小 → 抬头看天。
+        otsPitch -= mouseY;
+        otsPitch = Mathf.Clamp(otsPitch, -30f, 60f); // 限制俯仰角度
+    }
     /// <summary>
     /// 计算俯瞰模式的摄像机目标位置，及处理按住右键旋转鼠标改变角度的方法
     /// </summary>
