@@ -169,7 +169,23 @@ public class PlayerController : MonoBehaviour
                                 shootableMask))         //只检测哪些层
                 aimPoint = camHit.point;
             else
-                aimPoint = camRay.GetPoint(shootRange);     
+                //返回 射线起点 + 方向 × distance 的那个世界坐标点。
+                aimPoint = camRay.GetPoint(shootRange);     //沿射线方向走多少米
+
+            Vector3 shootDir = (aimPoint - muzzlePoint.position).normalized;
+
+            //第二条我们有分开的起点和方向，直接传两个参数更直观。
+            if (Physics.Raycast(muzzlePoint.position, shootDir, out RaycastHit hit, shootRange, shootableMask))
+            {
+                //打中了东西
+                Debug.Log("击中: " + hit.collider.gameObject.name);
+                Debug.DrawLine(muzzlePoint.position, aimPoint, Color.red, 100f);
+            }
+            else
+            {
+                // 没打中
+                Debug.DrawLine(muzzlePoint.position, aimPoint, Color.yellow, 100f);
+            }
         }
     }
 }
