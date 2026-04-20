@@ -31,11 +31,13 @@ public class GamePanel : BasePanel
             //隐藏游戏界面
             UIManager.Instance.HidePanel<GamePanel>();
             //弹出设置界面
-
         });
 
         //一开始隐藏下方造塔的UI
         botTrans.gameObject.SetActive(false);
+
+        //默认隐藏准星
+        imgCrosshair.gameObject.SetActive(false);
     }
 
     /// <summary>
@@ -49,7 +51,7 @@ public class GamePanel : BasePanel
         //改变UI界面的长宽时，要变成RectTransform
         ((RectTransform)imgHP.transform).sizeDelta = new Vector2((float)hp / maxHP * hpw, 47);
     }
-    
+
     /// <summary>
     /// 更新金币数量
     /// </summary>
@@ -57,5 +59,14 @@ public class GamePanel : BasePanel
     public void UpdateMoney(int money)
     {
         txtMoney.text = money.ToString();
+    }
+    
+    /// <summary>
+    /// 给外部控制准星显示/隐藏（OTS模式显示，其他模式隐藏）
+    /// </summary>
+    /// <param name="show"></param>
+    public void SetCrosshairShow(bool show)
+    {
+        imgCrosshair.gameObject.SetActive(show);
     }
 }

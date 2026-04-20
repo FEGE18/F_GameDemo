@@ -23,15 +23,12 @@ public class UIManager
         _canvasTrans = canvasObj.transform;
         //把这个canvas对象的渲染摄像机设置成场景中的渲染摄像机，这样就可以保证这个canvas对象能够正确的渲染了
         canvasObj.GetComponent<Canvas>().worldCamera = renderingCamera.GetComponent<Camera>();
+        //缓存渲染摄像机
+        _renderingCamera = renderingCamera.GetComponent<Camera>();
 
         // 将 Rendering_Camera 作为 Overlay 相机添加到 Main Camera 的 Stack 中
         // 这样 UI 相机不会覆盖主相机画面，而是叠加渲染在上面
-        Camera mainCam = Camera.main;
-        if (mainCam != null)
-        {
-            var mainCamData = mainCam.GetUniversalAdditionalCameraData();
-            mainCamData.cameraStack.Add(renderingCamera.GetComponent<Camera>());
-        }
+        RebindCameraStack();
 
         //通过DontDestroyOnLoad方法来让这个canvas对象在场景切换的时候不被销毁，
         // 这样就可以保证在整个游戏过程中只有一个canvas对象了
@@ -50,6 +47,9 @@ public class UIManager
 
     //场景中的 canvas对象，用于设置为面板的父对象
     private Transform _canvasTrans;
+
+    //场景中的渲染摄像机
+    private Camera _renderingCamera;
 
     /// <summary>
     /// 显示面板
@@ -114,7 +114,7 @@ public class UIManager
                 panelDic.Remove(panelName);
             }
         }
-    } 
+    }
 
 
     /// <summary>
@@ -122,7 +122,7 @@ public class UIManager
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public T GetPanel<T>() where T:BasePanel
+    public T GetPanel<T>() where T : BasePanel
     {
         string panelName = typeof(T).Name;
         if (panelDic.ContainsKey(panelName))
@@ -132,4 +132,21 @@ public class UIManager
         else
             return null;
     } 
+    
+    /// <summary>
+    /// 切换场景后，把 UI 渲染摄像机重新加到新的 Main Camera Stack 中
+    /// </summary>
+    public void RebindCameraStack()
+    {
+        Camera mainCam = Camera.main;
+        if(mainCam!=null && _renderingCamera!=null)
+        {
+            var mainCamData = mainCam.GetUniversalAdditionalCameraData();
+            if(!mainCamData.cameraStack.Contains(_renderingCamera))
+            // 避免重复添加
+            {
+                mainCamData.cameraStack.Add(_renderingCamera);
+            }
+        }
+    }
 }

@@ -22,6 +22,11 @@ public class PlayerController : MonoBehaviour
     [Header("移动")]
     public float speedMultiplier = 1f;  // Root Motion 速度倍率
 
+    [Header("射击")]
+    public Transform muzzlePoint;    // 枪口位置（挂在武器模型上的空物体）
+    public LayerMask shootableMask;  // 可被射击的层
+    public float shootRange = 100f;  // 射击最大距离
+
     private CharacterController controller;
     private float verticalSpeed;
 
@@ -39,7 +44,8 @@ public class PlayerController : MonoBehaviour
 
         HandleInput();
         HandleRotation();
-       
+        //处理开火
+        HandleFire();
     }
 
     /// <summary>
@@ -134,9 +140,36 @@ public class PlayerController : MonoBehaviour
             verticalSpeed += gravity * Time.deltaTime;
         }
 
-        //
+        //把3个轴上的运动合并
         rootMotion.y = verticalSpeed * Time.deltaTime;
 
         controller.Move(rootMotion);
+    }
+
+    private void HandleFire()
+    {
+        // 只有 OTS 模式才能射击
+        if (cameraController.currentMode != CameraController.CameraMode.OTS)
+            return;
+
+        //鼠标左键按下
+        if(Input.GetMouseButtonDown(0))
+        {
+            // 触发攻击动画
+            animator.SetBool("IsAttacking", true);
+
+            //=== 第一条射线：从摄像机穿过屏幕中心，找到瞄准点 ===
+            //从摄像机位置出发、穿过屏幕正中心（准星位置）的射线。Unity 提供了一个现成的方法：
+            Ray camRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+            Vector3 aimPoint;
+
+            if (Physics.Raycast(camRay,                 //射线（包含起点和方向）
+                                out RaycastHit camHit,  //输出参数，Unity 把碰撞信息填进去
+                                shootRange,             //射线最远检测多少米
+                                shootableMask))         //只检测哪些层
+                aimPoint = camHit.point;
+            else
+                aimPoint = camRay.GetPoint(shootRange);     
+        }
     }
 }

@@ -357,6 +357,9 @@ public class CameraController : MonoBehaviour
         // 锁定并隐藏光标
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        //显示准星
+        UIManager.Instance.GetPanel<GamePanel>().SetCrosshairShow(true);
     }
 
     /// <summary>
@@ -377,5 +380,8 @@ public class CameraController : MonoBehaviour
         // 解锁并显示光标
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        //隐藏准星
+        UIManager.Instance.GetPanel<GamePanel>().SetCrosshairShow(false);
     }
 }

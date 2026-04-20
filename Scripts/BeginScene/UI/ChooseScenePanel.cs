@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class ChooseScenePanel : BasePanel
@@ -40,9 +41,13 @@ public class ChooseScenePanel : BasePanel
 
         btnStart.onClick.AddListener(() =>
         {
-            //隐藏当前面板
-            UIManager.Instance.HidePanel<ChooseScenePanel>();
-            //切换场景
+            //隐藏当前面板，不等淡出，立即销毁
+            UIManager.Instance.HidePanel<ChooseScenePanel>(false);
+            //记录选择的场景数据（方便 GameManager 使用）
+            GameDataMgr.Instance.nowSelScene = _nowSceneInfo;
+            //切换到游戏场景
+            SceneManager.LoadScene("GameScene");
+
         });
 
         btnBack.onClick.AddListener(() =>
