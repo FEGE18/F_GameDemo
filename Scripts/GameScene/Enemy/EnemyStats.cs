@@ -17,6 +17,8 @@ public class EnemyStats : MonoBehaviour
     [HideInInspector] public float roundSpeed;
     [HideInInspector] public int   maxHp;
     [HideInInspector] public float atkInterval;
+    [HideInInspector] public float chaseRange;
+    [HideInInspector] public float attackRange;
 
 
     //在Awake里初始化是为了方便其他类在start里调用EnemyStats类
@@ -36,6 +38,9 @@ public class EnemyStats : MonoBehaviour
         roundSpeed  = info.roundSpeed;
         maxHp       = info.hp;
         atkInterval = info.atkInterval;
+        chaseRange  = info.chaseRange;
+        attackRange = info.attackRange;
+
     }
 
 }
