@@ -65,6 +65,21 @@ public class CameraController : MonoBehaviour
     private float otsYaw;               // OTS 水平旋转角度
     private float otsPitch;             // OTS 垂直旋转角度（俯仰）
 
+    [Header("OTS瞄准")]
+    public float aimDistance = 0.8f;        // 瞄准时摄像机距离
+    public float aimHeight = 1.3f;          // 瞄准时摄像机高度
+    public float aimRightOffset = 1.2f;     // 瞄准时右肩偏移
+    public float aimFOV = 40f;             // 瞄准时视野角
+    public float aimSmoothSpeed = 8f;       // 过渡速度
+
+    private bool isAiming = false;          // 是否正在瞄准
+    private float defaultFOV;               // 记录默认FOV
+
+    //这三个变量记录在Lerp时的值，这样就不用修改Inspector窗口上的默认值
+    private float currentOtsDist;
+    private float currentOtsHeight;
+    private float currentOtsOffset;
+
     [Header("过渡")]
     //过渡时间
     public float transitionDuration = 0.3f;
@@ -80,8 +95,13 @@ public class CameraController : MonoBehaviour
 
     void Start()
     {
+        //为了在游戏一开始在战术模式下，摄像头就朝角色的背后看去。记录了角色一开始的水平旋转角度
         if (target != null)
             currentYaw = target.eulerAngles.y;
+
+        //为了制作OTS下右键瞄准，需要记录镜头的默认FOV 
+        //FOV = Field of View（视野角），就是摄像机能"看到多宽"的角度
+        defaultFOV = Camera.main.fieldOfView;
     }
     void LateUpdate()
     {
@@ -177,6 +197,23 @@ public class CameraController : MonoBehaviour
     /// </summary>
     private void UpdateOTS()
     {
+        // === 瞄准过渡 ===
+        //是否按下右键
+        isAiming = Input.GetMouseButton(1);
+        //根据是否按下右键选择移动终点
+        float targetDist   = isAiming ? aimDistance    : otsDistance;
+        float targetHeight = isAiming ? aimHeight      : otsHeight;
+        float targetOffset = isAiming ? aimRightOffset : otsRightOffset;
+        float targetFov = isAiming ? aimFOV : defaultFOV;
+        //与帧率无关
+        float lerpSpeed = aimSmoothSpeed * Time.deltaTime;
+        currentOtsDist   = Mathf.Lerp(currentOtsDist,   targetDist,   lerpSpeed);
+        currentOtsHeight = Mathf.Lerp(currentOtsHeight,  targetHeight, lerpSpeed);
+        currentOtsOffset = Mathf.Lerp(currentOtsOffset, targetOffset, lerpSpeed);
+        //同时需要移动镜头的视野角
+        Camera.main.fieldOfView = Mathf.Lerp(Camera.main.fieldOfView, targetFov, lerpSpeed);
+
+        //=== 鼠标旋转逻辑 ===
         float mouseX = Input.GetAxis("Mouse X") * otsHMouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * otsVMouseSensitivity;
 
@@ -196,9 +233,9 @@ public class CameraController : MonoBehaviour
 
         // 摄像机目标位置 = 角色位置 + 后方偏移 + 上方偏移 + 右肩偏移
         Vector3 targetPos = target.position
-            + Vector3.up * otsHeight          // 先抬高到肩膀高度
-            + backDir * otsDistance            // 再往身后拉
-            + rightDir * otsRightOffset;       // 再往右偏移（过肩效果)
+            + Vector3.up * currentOtsHeight          // 先抬高到肩膀高度
+            + backDir * currentOtsDist            // 再往身后拉
+            + rightDir * currentOtsOffset;       // 再往右偏移（过肩效果)
 
         // === 碰撞检测（防穿墙）===
         targetPos = CheckOcclusion(targetPos);
@@ -209,6 +246,7 @@ public class CameraController : MonoBehaviour
 
         // 摄像机朝向 = 直接用鼠标控制的旋转
         transform.rotation = rotation;
+
     }
 
     private void UpdateTransition()
@@ -360,6 +398,11 @@ public class CameraController : MonoBehaviour
 
         //显示准星
         UIManager.Instance.GetPanel<GamePanel>().SetCrosshairShow(true);
+
+        //在每次进入OTS模式时初始化瞄准动画的过渡值
+        currentOtsDist = otsDistance;
+        currentOtsHeight = otsHeight;
+        currentOtsOffset = otsRightOffset;
     }
 
     /// <summary>

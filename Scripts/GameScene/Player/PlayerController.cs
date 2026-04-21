@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -26,9 +27,20 @@ public class PlayerController : MonoBehaviour
     public Transform muzzlePoint;    // 枪口位置（挂在武器模型上的空物体）
     public LayerMask shootableMask;  // 可被射击的层
     public float shootRange = 100f;  // 射击最大距离
+    public float fireInterval = 0.3f;  //两次射击的最小间隔
+    private float lastFireTime = -1f;  //上次开火的时间，设成-1主要是防止第0秒时不能开枪
 
     private CharacterController controller;
     private float verticalSpeed;
+
+    public GameObject muzzleFlashPrefab;  // 枪口火焰特效预制体
+
+    [Header("翻滚")]
+    public float rollCooldown = 1f;  // 翻滚冷却时间
+    private float lastRollTime = -10f;  // 上次翻滚时间
+
+    [Header("跳跃")]
+    public float jumpSpeed = 5f;  //跳跃初速度
 
     // Start is called before the first frame update
     void Start()
@@ -46,6 +58,10 @@ public class PlayerController : MonoBehaviour
         HandleRotation();
         //处理开火
         HandleFire();
+        //处理翻滚
+        HandleRoll();
+        //处理跳跃
+        HandleJump();
     }
 
     /// <summary>
@@ -129,7 +145,7 @@ public class PlayerController : MonoBehaviour
         Vector3 rootMotion = animator.deltaPosition * speedMultiplier;
 
         //处理重力
-        if (controller.isGrounded)
+        if (controller.isGrounded && verticalSpeed <= 0)
         {
             //保持贴地
             verticalSpeed = -1f;
@@ -153,39 +169,100 @@ public class PlayerController : MonoBehaviour
             return;
 
         //鼠标左键按下
-        if(Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0))
         {
+            //=== 判断开枪间隔时间 ===
+            //冷却中，不能开火
+            if (Time.time - lastFireTime < fireInterval)
+                return;
+
+            //记录本次开火时间
+            //单发武器用时间戳更简洁。Time.time 是游戏从启动到现在的总秒数
+            lastFireTime = Time.time;
             // 触发攻击动画
-            animator.SetBool("IsAttacking", true);
+             animator.SetBool("IsAttacking", true);
+            animator.SetTrigger("Fire");
 
-            //=== 第一条射线：从摄像机穿过屏幕中心，找到瞄准点 ===
-            //从摄像机位置出发、穿过屏幕正中心（准星位置）的射线。Unity 提供了一个现成的方法：
-            Ray camRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            Vector3 aimPoint;
+           
+        }
+    }
 
-            if (Physics.Raycast(camRay,                 //射线（包含起点和方向）
-                                out RaycastHit camHit,  //输出参数，Unity 把碰撞信息填进去
-                                shootRange,             //射线最远检测多少米
-                                shootableMask))         //只检测哪些层
-                aimPoint = camHit.point;
-            else
-                //返回 射线起点 + 方向 × distance 的那个世界坐标点。
-                aimPoint = camRay.GetPoint(shootRange);     //沿射线方向走多少米
+    /// <summary>
+    /// 动画事件回调，射击动画播到开枪时自动调用
+    /// </summary>
+    public void ShootEvent()
+    {
+        // 枪口火焰特效
+        if (muzzleFlashPrefab != null)
+        {
+            GameObject flash = Instantiate(muzzleFlashPrefab, muzzlePoint.position, muzzlePoint.rotation);
+            Destroy(flash, 0.1f);  // 0.1秒后自动销毁
+        }
 
-            Vector3 shootDir = (aimPoint - muzzlePoint.position).normalized;
+        //=== 第一条射线：从摄像机穿过屏幕中心，找到瞄准点 ===
+        //从摄像机位置出发、穿过屏幕正中心（准星位置）的射线。Unity 提供了一个现成的方法：
+        Ray camRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        Vector3 aimPoint;
 
-            //第二条我们有分开的起点和方向，直接传两个参数更直观。
-            if (Physics.Raycast(muzzlePoint.position, shootDir, out RaycastHit hit, shootRange, shootableMask))
+        if (Physics.Raycast(camRay,                 //射线（包含起点和方向）
+                            out RaycastHit camHit,  //输出参数，Unity 把碰撞信息填进去
+                            shootRange,             //射线最远检测多少米
+                            shootableMask))         //只检测哪些层
+            aimPoint = camHit.point;
+        else
+            //返回 射线起点 + 方向 × distance 的那个世界坐标点。
+            aimPoint = camRay.GetPoint(shootRange);     //沿射线方向走多少米
+
+        Vector3 shootDir = (aimPoint - muzzlePoint.position).normalized;
+
+        //第二条我们有分开的起点和方向，直接传两个参数更直观。
+        if (Physics.Raycast(muzzlePoint.position, shootDir, out RaycastHit hit, shootRange, shootableMask))
+        {
+            //打中了东西
+            //检查被击中的物体是否有Damageable组件，即是否可被攻击
+            Damageable target = hit.collider.GetComponent<Damageable>();
+            if (target != null)
             {
-                //打中了东西
-                Debug.Log("击中: " + hit.collider.gameObject.name);
-                Debug.DrawLine(muzzlePoint.position, aimPoint, Color.red, 100f);
+                //伤害值从角色数据里读取
+                target.TakeDamage(GameDataMgr.Instance.nowSelRole == null ? 2 : GameDataMgr.Instance.nowSelRole.atk);
             }
-            else
-            {
-                // 没打中
-                Debug.DrawLine(muzzlePoint.position, aimPoint, Color.yellow, 100f);
-            }
+            Debug.DrawLine(muzzlePoint.position, aimPoint, Color.red, 100f);
+        }
+        else
+        {
+            // 没打中
+            Debug.DrawLine(muzzlePoint.position, aimPoint, Color.yellow, 100f);
+        }
+    }
+
+    /// <summary>
+    /// 处理翻滚
+    /// </summary>
+    private void HandleRoll()
+    {
+        // 按左 Alt 触发翻滚
+        if (Input.GetKeyDown(KeyCode.LeftAlt))
+        {
+            // 冷却中，不让滚
+            if (Time.time - lastRollTime < rollCooldown)
+                return;
+
+            lastRollTime = Time.time;
+            animator.SetTrigger("Roll");
+        }
+    }
+    
+    /// <summary>
+    /// 处理跳跃
+    /// </summary>
+    private void HandleJump()
+    {
+        if (!controller.isGrounded)
+            return;
+            
+        if(Input.GetKeyDown(KeyCode.Space))
+        {
+            verticalSpeed = jumpSpeed;
         }
     }
 }
