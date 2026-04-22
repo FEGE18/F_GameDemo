@@ -218,9 +218,10 @@ public class PlayerController : MonoBehaviour
         //第二条我们有分开的起点和方向，直接传两个参数更直观。
         if (Physics.Raycast(muzzlePoint.position, shootDir, out RaycastHit hit, shootRange, shootableMask))
         {
+            Debug.Log("射线击中：" + hit.collider.gameObject.name);
             //打中了东西
             //检查被击中的物体是否有Damageable组件，即是否可被攻击
-            Damageable target = hit.collider.GetComponent<Damageable>();
+            Damageable target = hit.collider.GetComponentInParent<Damageable>();
             if (target != null)
             {
                 //伤害值从角色数据里读取

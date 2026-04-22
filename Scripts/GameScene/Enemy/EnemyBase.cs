@@ -36,6 +36,8 @@ public abstract class EnemyBase : MonoBehaviour
     //可以被攻击的对象的脚本
     public Damageable Damageable { get; private set; }
 
+    [SerializeField] private Transform _initTarget;  // [测试用] Inspector 里拖玩家进来
+
     // ─────────────────────────────────────────────────────────
     protected virtual void Awake()
     {
@@ -56,11 +58,15 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void Start()
     {
+      if (Target == null) Target = _initTarget;     // 没被代码赋值，就用 Inspector 里的值
+
         // 子类可以重写 Start，在这里切入初始状态
         // 比如 MinionBrain 的 Start 里调用 ChangeState(new IdleState())
 
         // 自动调用子类声明的初始状态，不需要子类手动 ChangeState
         ChangeState(GetInitialState());
+
+     
     }
 
     protected virtual void Update()
@@ -97,7 +103,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void OnHurt()
     {
- 
+        AnimCtrl.TriggerWound();
     }
     
     protected virtual void OnDestroy()

@@ -17,6 +17,8 @@ public class MinionAttackState : IEnemyState
 
         float dist = Vector3.Distance(enemy.transform.position, enemy.Target.position);
 
+        Debug.Log($"AttackState dist={dist:F1}, attackRange={enemy.Stats.attackRange}");  // ← 临时加
+        
         // 玩家跑出了攻击距离 → 切回追击
         if (dist > enemy.Stats.attackRange)
         {
