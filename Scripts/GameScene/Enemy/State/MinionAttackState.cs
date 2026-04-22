@@ -29,7 +29,8 @@ public class MinionAttackState : IEnemyState
         {
             _lastAtkTime = Time.time;
             enemy.AnimCtrl.TriggerAtk();
-            enemy.Combat.DealDamage();   // 实际伤害由 EnemyCombat 处理
+
+            // 实际伤害由 动画事件 OnAttackHit() 处理
         }
     }
 
