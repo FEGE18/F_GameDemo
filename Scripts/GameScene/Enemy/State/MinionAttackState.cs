@@ -9,6 +9,7 @@ public class MinionAttackState : IEnemyState
         // 停下来，面朝玩家（停止寻路，NavMesh 不再推着走）
         enemy.Agent.isStopped = true;  // 完全停止 Agent
         enemy.Agent.ResetPath();       // 清除残余路径
+        enemy.Agent.velocity = Vector3.zero;  // ← 强制清掉残余速度
     }
 
     public void Update(EnemyBase enemy)
@@ -17,11 +18,9 @@ public class MinionAttackState : IEnemyState
         FaceTarget(enemy);
 
         float dist = Vector3.Distance(enemy.transform.position, enemy.Target.position);
-
-        Debug.Log($"AttackState dist={dist:F1}, attackRange={enemy.Stats.attackRange}");  // ← 临时加
         
         // 玩家跑出了攻击距离 → 切回追击
-        if (dist > enemy.Stats.attackRange)
+        if (dist > enemy.Stats.attackRange * 1.3f)
         {
             enemy.ChangeState(new MinionChaseState());
             return;

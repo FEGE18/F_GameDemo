@@ -34,8 +34,19 @@ public class EnemyCombat : MonoBehaviour
         target.TakeDamage(_brain.Stats.atk);
     }
 
+    /// <summary>
+    /// 死亡动画结束时的监听事件
+    /// </summary>
     public void DeadEvent()
     {
         Destroy(this.gameObject);
+    }
+
+    /// <summary>
+    /// 出生动画结束时的监听事件
+    /// </summary>
+    public void BornOver()
+    {
+        _brain.ChangeState(new MinionIdleState());
     }
 }
