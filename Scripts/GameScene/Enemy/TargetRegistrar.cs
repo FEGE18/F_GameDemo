@@ -11,7 +11,7 @@ public class TargetRegistrar : MonoBehaviour
         EnemyTargetRegistry.Register(transform);
     }
 
-    private void ODestroy()
+    private void OnDestroy()
     {
         EnemyTargetRegistry.Unregister(transform);
     }

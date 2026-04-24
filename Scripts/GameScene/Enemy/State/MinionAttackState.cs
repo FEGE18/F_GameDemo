@@ -7,7 +7,8 @@ public class MinionAttackState : IEnemyState
     public void Enter(EnemyBase enemy)
     {
         // 停下来，面朝玩家（停止寻路，NavMesh 不再推着走）
-        enemy.Agent.ResetPath();
+        enemy.Agent.isStopped = true;  // 完全停止 Agent
+        enemy.Agent.ResetPath();       // 清除残余路径
     }
 
     public void Update(EnemyBase enemy)
@@ -36,7 +37,10 @@ public class MinionAttackState : IEnemyState
         }
     }
 
-    public void Exit(EnemyBase enemy) { }
+    public void Exit(EnemyBase enemy)
+    {
+        enemy.Agent.isStopped = false;  // 恢复 Agent，让 Chase 重新寻路
+    }
 
     private void FaceTarget(EnemyBase enemy)
     {
