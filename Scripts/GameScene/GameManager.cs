@@ -1,12 +1,21 @@
   using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class GameManager : MonoBehaviour
 {
+    // 单例模式
+    public static GameManager Instance { get; private set; }
+
     [Header("角色生成点")]
     // 角色生成点
     public Transform spawnPoint;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
     void Start()
     {
         // 把 UI 渲染摄像机重新绑定到本场景的 Main Camera
@@ -19,7 +28,7 @@ public class GameManager : MonoBehaviour
         if (roleInfo == null)
         {
             roleInfo = GameDataMgr.Instance.roleInfoList[1]; // 取第一个角色
-        }        
+        }
 
         //从 Resources 加载角色预制体并生成
         GameObject playerPrefab = Resources.Load<GameObject>(roleInfo.res);
@@ -33,5 +42,16 @@ public class GameManager : MonoBehaviour
         UIManager.Instance.ShowPanel<GamePanel>();
     }
 
+    public void GameOver()
+    {
+        Debug.Log("游戏失败！基地被摧毁");
+        // 后续：显示失败面板、停止刷怪等，都在这里加
+    }
+    
+    public void Win()
+    {
+        Debug.Log("游戏胜利！所有波次清空！");
+    // 后续：显示胜利面板等，都在这里加
+    }
 
 }

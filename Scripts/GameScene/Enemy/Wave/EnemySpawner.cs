@@ -17,7 +17,7 @@ public class EnemySpawner : MonoBehaviour
 
     void Start()
     {
-
+        StartCoroutine(RunWaves());
     }
 
     private void SpawnOne(WaveData wave)
@@ -36,10 +36,40 @@ public class EnemySpawner : MonoBehaviour
         // 所以 谁生的怪，谁订阅，精准到每一个 GameObject 实例
         dmg.OnDeath += OnEnemyDied;
     }
-    
+
     private void OnEnemyDied()
     {
         //死亡后计数器-1
         _aliveCount--;
+    }
+    
+    private IEnumerator RunWaves()
+    {
+        //外部循环，每一次i++，就是一波怪物的生成
+        for (int i = 0; i < waves.Length; i++)
+        {
+            //记录当前是第几波
+            _currentWave = i;
+            WaveData wave = waves[i];
+            //暂停协程，等待下一波开始
+            yield return new WaitForSeconds(wave.delayBeforeWave);
+
+            //内层循环，每一次j++，就是一波内的每一只怪物生成
+            for (int j = 0; j < wave.count; j++)
+            {
+                //生成一只小怪
+                SpawnOne(wave);
+                //暂停协程，等待下一只小怪生成
+                yield return new WaitForSeconds(wave.spawnInterval);
+            }
+
+            //WaitUntil 怎么工作的？
+            //Unity 每帧会调用这个小函数检查结果：
+                //返回 false → 继续等，下一帧再检查
+                //返回 true → 条件满足，协程从这行继续往下执行
+            yield return new WaitUntil(() => _aliveCount <= 0);
+            Debug.Log($"第{i + 1}波清空");
+        }
+        GameManager.Instance.Win();
     }
 }

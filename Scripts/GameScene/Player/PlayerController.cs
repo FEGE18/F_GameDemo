@@ -42,6 +42,20 @@ public class PlayerController : MonoBehaviour
     [Header("跳跃")]
     public float jumpSpeed = 5f;  //跳跃初速度
 
+    //死亡相关字段
+    private Damageable _damageable;
+
+    void Awake()
+    {
+        //关联受伤脚本
+        _damageable = GetComponent<Damageable>();
+        if(_damageable!=null)
+        {
+            //订阅死亡逻辑
+            _damageable.OnDeath += OnPlayerDeath;
+        }
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -252,7 +266,7 @@ public class PlayerController : MonoBehaviour
             animator.SetTrigger("Roll");
         }
     }
-    
+
     /// <summary>
     /// 处理跳跃
     /// </summary>
@@ -260,10 +274,18 @@ public class PlayerController : MonoBehaviour
     {
         if (!controller.isGrounded)
             return;
-            
-        if(Input.GetKeyDown(KeyCode.Space))
+
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             verticalSpeed = jumpSpeed;
         }
+    }
+    
+    /// <summary>
+    /// 玩家死亡时，游戏结束
+    /// </summary>
+    private void OnPlayerDeath()
+    {
+        GameManager.Instance.GameOver();
     }
 }
