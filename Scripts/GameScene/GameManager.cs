@@ -44,14 +44,16 @@ public class GameManager : MonoBehaviour
 
     public void GameOver()
     {
-        Debug.Log("游戏失败！基地被摧毁");
-        // 后续：显示失败面板、停止刷怪等，都在这里加
+        Time.timeScale = 0f;   // 暂停游戏时间
+        GameOverPanel panel = UIManager.Instance.ShowPanel<GameOverPanel>();
+        panel.SetResult(false);
     }
     
     public void Win()
     {
-        Debug.Log("游戏胜利！所有波次清空！");
-    // 后续：显示胜利面板等，都在这里加
+        Time.timeScale = 0f;   // 暂停游戏时间
+        GameOverPanel panel = UIManager.Instance.ShowPanel<GameOverPanel>();
+        panel.SetResult(true);
     }
 
 }

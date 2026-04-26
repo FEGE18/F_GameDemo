@@ -39,6 +39,9 @@ public class GameDataMgr
     //怪物数据
     public List<MonsterInfo> monsterInfoList;
 
+    //防御塔数据
+    public List<TowerInfo> towerInfoList;
+
     private GameDataMgr()
     {
         //默认初始化一些数据
@@ -50,7 +53,9 @@ public class GameDataMgr
         //获取场景数据
         sceneInfoList = JsonMgr.Instance.LoadData<List<SceneInfo>>("SceneInfo");
         //读取怪物数据
-        monsterInfoList = JsonMgr.Instance.LoadData <List<MonsterInfo>>("MonsterInfo");
+        monsterInfoList = JsonMgr.Instance.LoadData<List<MonsterInfo>>("MonsterInfo");
+        //读取防御塔数据
+        towerInfoList = JsonMgr.Instance.LoadData <List<TowerInfo>>("TowerInfo");
     }
 
     public void SaveMusicData()

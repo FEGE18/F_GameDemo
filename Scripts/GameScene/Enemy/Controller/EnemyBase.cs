@@ -53,6 +53,9 @@ public abstract class EnemyBase : MonoBehaviour
         Damageable = GetComponent<Damageable>();
         Damageable.OnDeath += OnDeath;
         Damageable.OnHurt += OnHurt;
+
+        //把敌人注册进EnemyRegistry中，方便防御塔寻怪
+        EnemyRegistry.Register(this.transform);
     }
 
     protected virtual void Start()
@@ -114,5 +117,8 @@ public abstract class EnemyBase : MonoBehaviour
             Damageable.OnDeath -= OnDeath;
             Damageable.OnHurt -= OnHurt;
         }
+
+        //在敌人死亡后，要把该对象移出注册表
+        EnemyRegistry.Unregister(this.transform);
     }
 }

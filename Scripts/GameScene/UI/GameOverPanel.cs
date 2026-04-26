@@ -16,6 +16,8 @@ public class GameOverPanel : BasePanel
     {
         btnSure.onClick.AddListener(() =>
         {
+            // 恢复时间，否则新场景也是暂停的
+            Time.timeScale = 1f;   
             //隐藏面板
             UIManager.Instance.HidePanel<GameOverPanel>();
             UIManager.Instance.HidePanel<GamePanel>();
@@ -26,8 +28,9 @@ public class GameOverPanel : BasePanel
 
     public void SetResult(bool isWin)
     {
-        txtWin.text = isWin ? "游戏胜利！" : "游戏失败！";
+        txtWin.text = isWin ? "游戏胜利!" : "游戏失败!";
         txtWin.color  = isWin ? Color.yellow : Color.red;
-        txtInfo.text  = isWin ? "胜利奖励" : "失败奖励";
+        txtInfo.text = isWin ? "胜利奖励" : "失败奖励";
+        txtMoney.text = "金币:---";  // 占位，后期接金币系统
     }
 }
