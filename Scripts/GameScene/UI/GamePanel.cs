@@ -38,6 +38,14 @@ public class GamePanel : BasePanel
 
         //默认隐藏准星
         imgCrosshair.gameObject.SetActive(false);
+
+        //初始化造塔按钮
+        List<TowerInfo> towerList = GameDataMgr.Instance.towerInfoList;
+        for(int i = 0;i < towerBtns.Count && i < towerList.Count;i++)
+        {
+            Debug.Log($"Setup 第{i}个按钮，towerBtns[i]={towerBtns[i]?.name}，info.name={towerList[i]?.name}");
+            towerBtns[i].Setup(towerList[i]);
+        }
     }
 
     /// <summary>
@@ -60,7 +68,7 @@ public class GamePanel : BasePanel
     {
         txtMoney.text = money.ToString();
     }
-    
+
     /// <summary>
     /// 给外部控制准星显示/隐藏（OTS模式显示，其他模式隐藏）
     /// </summary>
@@ -68,5 +76,20 @@ public class GamePanel : BasePanel
     public void SetCrosshairShow(bool show)
     {
         imgCrosshair.gameObject.SetActive(show);
+    }
+
+    void LateUpdate()
+    {
+        // 战术模式下显示造塔 UI，OTS 模式下隐藏
+        // OTS模式下显示射击准星，战术模式下隐藏
+        CameraController cam = Camera.main.GetComponent<CameraController>();
+    if (cam != null)
+    {
+        bool isTactical = cam.CurrentMode == CameraController.CameraMode.Tactical;
+            botTrans.gameObject.SetActive(isTactical);
+
+        bool isOTS = cam.currentMode == CameraController.CameraMode.OTS;
+            imgCrosshair.gameObject.SetActive(isOTS);
+    }
     }
 }

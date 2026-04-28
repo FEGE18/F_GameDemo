@@ -1,5 +1,6 @@
   using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -11,6 +12,10 @@ public class GameManager : MonoBehaviour
     [Header("角色生成点")]
     // 角色生成点
     public Transform spawnPoint;
+
+    [Header("金币")]
+    //存当前金币数
+    public int money;
 
     private void Awake()
     {
@@ -40,6 +45,16 @@ public class GameManager : MonoBehaviour
 
         //显示游戏场景UI
         UIManager.Instance.ShowPanel<GamePanel>();
+    }
+
+    public bool SpendMoney(int amount)
+    {
+        if (money < amount) return false;
+        money -= amount;
+
+        //刷新UI
+        UIManager.Instance.GetPanel<GamePanel>()?.UpdateMoney(money);
+        return true;
     }
 
     public void GameOver()
