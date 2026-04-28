@@ -66,7 +66,14 @@ public class GamePanel : BasePanel
     /// <param name="money"></param>
     public void UpdateMoney(int money)
     {
+        //更新文字
         txtMoney.text = money.ToString();
+
+        //同时遍历 towerBtns，让每个按钮跟当前金币比一下，如果钱不够，按钮变灰，不让点
+        foreach (var btn in towerBtns)
+        {
+            btn.SetInteractable(money);
+        }
     }
 
     /// <summary>

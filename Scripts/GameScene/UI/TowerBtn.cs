@@ -18,20 +18,28 @@ public class TowerBtn : MonoBehaviour
 
     public void Setup(TowerInfo info)
     {
-            _info = info;
+        _info = info;
 
-            //加载图片
-            Sprite sp = Resources.Load<Sprite>(info.imgRes);
-            if (sp != null) imgPic.sprite = sp;
-            //把名字和金额绑定
-            txtTip.text = info.name;
-            txtMoney.text = "$" + info.money;
+        //加载图片
+        Sprite sp = Resources.Load<Sprite>(info.imgRes);
+        if (sp != null) imgPic.sprite = sp;
+        //把名字和金额绑定
+        txtTip.text = info.name;
+        txtMoney.text = "$" + info.money;
 
-            //绑定点击事件
-            GetComponent<Button>().onClick.AddListener(OnClick);
+        //绑定点击事件
+        GetComponent<Button>().onClick.AddListener(OnClick);
     }
     
-
+    /// <summary>
+    /// 根据当前金币决定按钮是否可以被点击
+    /// </summary>
+    /// <param name="currentMoney"></param>
+    public void SetInteractable(int currentMoney)
+    {
+        GetComponent<Button>().interactable = currentMoney >= _info.money;
+    }
+    
     private void OnClick()
     {
         // 通知放塔管理器：玩家想放这种塔

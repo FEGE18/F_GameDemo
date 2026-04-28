@@ -18,6 +18,10 @@ public class TowerPlacementMgr : MonoBehaviour
     //预览幽灵，放置时提示的半透明模型
     private GameObject _ghost;
 
+    [Header("Ghost 设置")]
+    public Material ghostMaterial;  // 在 Inspector 里拖入 GhostMaterial
+
+
     private void Awake()
     {
         Instance = this;
@@ -95,6 +99,14 @@ public class TowerPlacementMgr : MonoBehaviour
     /// </summary>
     private void ConfirmPlacement()
     {
+        //扣钱（进到这里说明一定够钱）
+        GameManager.Instance.SpendMoney(_currentInfo.money);
 
+        //在 ghost 位置生成真塔
+        GameObject prefab = Resources.Load<GameObject>(_currentInfo.res);
+        Instantiate(prefab, _ghost.transform.position, _ghost.transform.rotation);
+
+        //退出放置位置
+        CancelPlacement();
     }
 }
