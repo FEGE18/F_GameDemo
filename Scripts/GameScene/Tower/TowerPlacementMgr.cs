@@ -114,7 +114,10 @@ public class TowerPlacementMgr : MonoBehaviour
 
         //在 ghost 位置生成真塔
         GameObject prefab = Resources.Load<GameObject>(_currentInfo.res);
-        Instantiate(prefab, _ghost.transform.position, _ghost.transform.rotation);
+        GameObject tower = Instantiate(prefab, _ghost.transform.position, _ghost.transform.rotation);
+
+        //把塔的数据传给 TowerController中初始化
+        tower.GetComponent<TowerController>().Init(_currentInfo);
 
         //退出放置位置
         CancelPlacement();

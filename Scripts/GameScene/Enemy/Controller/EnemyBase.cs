@@ -98,6 +98,9 @@ public abstract class EnemyBase : MonoBehaviour
     /// </summary>
     protected virtual void OnDeath()
     {
+        // 奖励金币
+        GameManager.Instance.AddMoney(Stats.reward);
+    
         ChangeState(new MinionDeadState());
     }
 

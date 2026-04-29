@@ -19,6 +19,8 @@ public class EnemyStats : MonoBehaviour
     [HideInInspector] public float atkInterval;
     [HideInInspector] public float chaseRange;
     [HideInInspector] public float attackRange;
+    //杀死怪物得到的金钱奖励
+    [HideInInspector] public int reward;
 
 
     //在Awake里初始化是为了方便其他类在start里调用EnemyStats类
@@ -40,6 +42,7 @@ public class EnemyStats : MonoBehaviour
         atkInterval = info.atkInterval;
         chaseRange  = info.chaseRange;
         attackRange = info.attackRange;
+        reward      = info.reward;
 
     }
 

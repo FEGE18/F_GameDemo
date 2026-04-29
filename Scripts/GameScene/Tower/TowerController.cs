@@ -16,13 +16,10 @@ public class TowerController : MonoBehaviour
     private Transform _target;
     private float _lastAtkTime;
 
-    void Start()
-    {
-        // 调试用：直接运行时用第一条塔数据
-        var towerList = GameDataMgr.Instance.towerInfoList;
-        if (towerList != null && towerList.Count > 0)
-            Init(towerList[0]);
-    }
+    //直接缓存子弹预设体，避免每次发射时从Resource加载，浪费性能
+    [Header("子弹预制体")]
+    public GameObject bulletPrefab;
+
 
     //由外部（放塔逻辑）调用，传入本塔的配置逻辑
     public void Init(TowerInfo info)
@@ -61,10 +58,9 @@ public class TowerController : MonoBehaviour
         //更新上次攻击时间
         _lastAtkTime = Time.time;
 
-        //找目标身上的 Damageable 并扣血
-        Damageable dmg = _target.GetComponent<Damageable>();
-        if (dmg != null)
-            dmg.TakeDamage(_attackDamage);
+        //发射子弹，开始攻击
+        GameObject bulletObj = Instantiate(bulletPrefab, turretHead.position, turretHead.rotation);
+        bulletObj.GetComponent<Bullet>().Init(_target, _attackDamage);
     }
 
     private IEnumerator SelectTargetLoop()

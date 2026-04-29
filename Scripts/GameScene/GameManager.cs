@@ -59,6 +59,12 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
+    public void AddMoney(int amount)
+    {
+        money += amount;
+        UIManager.Instance.GetPanel<GamePanel>()?.UpdateMoney(money);
+    }
+
     public void GameOver()
     {
         Time.timeScale = 0f;   // 暂停游戏时间
