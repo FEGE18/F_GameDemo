@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Palmmedia.ReportGenerator.Core.Parser.Analysis;
 using UnityEngine;
 
 public class TowerPlacementMgr : MonoBehaviour
@@ -20,6 +19,9 @@ public class TowerPlacementMgr : MonoBehaviour
 
     [Header("Ghost 设置")]
     public Material ghostMaterial;  // 在 Inspector 里拖入 GhostMaterial
+
+    [Tooltip("塔底部到轴心点的距离，防止塔陷入地面")]
+    public float placementYOffset = 0.5f;
 
 
     private void Awake()
@@ -44,6 +46,13 @@ public class TowerPlacementMgr : MonoBehaviour
         //创建ghost
         GameObject prefab = Resources.Load<GameObject>(_currentInfo.res);
         _ghost = Instantiate(prefab);
+
+        //把Ghost上所有 Renderer 材质换成透明材质
+        Renderer[] renderers = _ghost.GetComponentsInChildren<Renderer>();
+        foreach (var r in renderers)
+        {
+            r.material = ghostMaterial;
+        }
     }
 
     /// <summary>
@@ -77,7 +86,8 @@ public class TowerPlacementMgr : MonoBehaviour
         //如果射线打到了敌人、障碍物等。防御塔不能在上面，所以只能在Ground层响应
         LayerMask.GetMask("Ground")))
         {
-            _ghost.transform.position = hit.point;
+            //在y轴上方偏移一点，防止“陷”进地面
+            _ghost.transform.position = hit.point + Vector3.up * placementYOffset;
         }
 
         //左键

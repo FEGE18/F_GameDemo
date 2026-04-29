@@ -15,7 +15,7 @@ public class GameManager : MonoBehaviour
 
     [Header("金币")]
     //存当前金币数
-    public int money;
+    public int money = 500;
 
     private void Awake()
     {
@@ -45,6 +45,8 @@ public class GameManager : MonoBehaviour
 
         //显示游戏场景UI
         UIManager.Instance.ShowPanel<GamePanel>();
+        //初始化场景中的金币UI
+        UIManager.Instance.GetPanel<GamePanel>()?.UpdateMoney(money);
     }
 
     public bool SpendMoney(int amount)
