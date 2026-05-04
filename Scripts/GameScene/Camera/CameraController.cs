@@ -105,6 +105,7 @@ public class CameraController : MonoBehaviour
     }
     void LateUpdate()
     {
+        if (Time.timeScale == 0) return;
 
         if (target == null) return;
 

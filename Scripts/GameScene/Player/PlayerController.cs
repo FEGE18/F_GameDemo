@@ -45,6 +45,9 @@ public class PlayerController : MonoBehaviour
     //死亡相关字段
     private Damageable _damageable;
 
+    //给外部提供的，过场演出时锁住玩家输入
+    public bool isControllable = true;
+
     void Awake()
     {
         //关联受伤脚本
@@ -67,6 +70,7 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!isControllable) return;
 
         HandleInput();
         HandleRotation();

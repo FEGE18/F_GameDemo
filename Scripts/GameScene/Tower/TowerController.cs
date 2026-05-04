@@ -30,6 +30,8 @@ public class TowerController : MonoBehaviour
 
         //开始协程
         StartCoroutine(SelectTargetLoop());
+
+        TowerRegistry.Register(this.transform);
     }
 
     private void Update()
@@ -72,7 +74,7 @@ public class TowerController : MonoBehaviour
             UpdateTarget();
         }
     }
-    
+
     private void UpdateTarget()
     {
         //拿到目标注册表里的所有对象
@@ -95,6 +97,11 @@ public class TowerController : MonoBehaviour
             }
         }
         //将找到的最近目标赋值给_target
-        _target = nearest; 
+        _target = nearest;
+    }
+
+    private void OnDestroy()
+    {
+        TowerRegistry.Unregister(this.transform);
     }
 }

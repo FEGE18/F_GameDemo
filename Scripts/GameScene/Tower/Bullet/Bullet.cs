@@ -32,26 +32,27 @@ public class Bullet : MonoBehaviour
             return;
         }
 
-        // 每帧向目标移动  
-        //追踪导弹，每帧改变位移方向
-        Vector3 dir = (_target.position - transform.position).normalized;
-        transform.position += dir * _speed * Time.deltaTime;
-
-        //目标已经死亡，保持当前方向直线飞
         //!_target 等价于 _target == null || _target.gameObject == null
-        if (!_target )
+        if (_target)
         {
-            transform.Translate(Vector3.forward * _speed * Time.deltaTime);
-            return;
+            // 每帧向目标移动  
+            //追踪导弹，每帧改变位移方向
+            Vector3 dir = (_target.position - transform.position).normalized;
+            transform.position += dir * _speed * Time.deltaTime;
+
+            //到达目标（距离小于 0.3 认为命中）
+            if (Vector3.Distance(transform.position, _target.position) <= 0.3f)
+            {
+                _target.GetComponent<Damageable>()?.TakeDamage(_damage);
+                Destroy(gameObject);
+            }
         }
 
-        
-        //到达目标（距离小于 0.3 认为命中）
-        if(Vector3.Distance(transform.position,_target.position)<=0.3f)
+        else
         {
-            if(!_target)
-                _target.GetComponent<Damageable>()?.TakeDamage(_damage);
-            Destroy(gameObject);
+            //目标已经死亡，保持当前方向直线飞
+            transform.Translate(Vector3.forward * _speed * Time.deltaTime);
         }
+      
     }
 }
