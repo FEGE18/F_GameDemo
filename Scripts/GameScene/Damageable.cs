@@ -8,6 +8,12 @@ public class Damageable : MonoBehaviour
 {
     [Header("非敌人用(敌人血量从 EnemyStats 读)")]
     public int maxHP = 10;
+
+    [Header("飘字预设体")]
+    public GameObject damagePopupPrefab;
+    //飘字高度偏移
+    public float upOffset = 1.5f;
+
     public int CurrentHP { get; private set; }
 
     //事件：外部订阅，发生时自动收到通知
@@ -29,6 +35,15 @@ public class Damageable : MonoBehaviour
         if (CurrentHP <= 0) return;// 已经死了，不会受伤
 
         CurrentHP -= damage;
+
+        if (damagePopupPrefab != null)
+        {
+            // 生成位置：怪物脚底 + 向上偏移1.5米（头顶附近）
+            Vector3 spawnPos = transform.position + Vector3.up * upOffset +
+                                new Vector3(UnityEngine.Random.Range(0.3f, 0.5f), 0, UnityEngine.Random.Range(0.3f, 0.5f));
+            GameObject popup = Instantiate(damagePopupPrefab, spawnPos, Quaternion.identity);
+            popup.GetComponent<DamagePopup>().Init(damage);
+        }
 
         if (CurrentHP <= 0)
         {

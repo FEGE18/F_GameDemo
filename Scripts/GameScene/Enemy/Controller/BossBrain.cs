@@ -11,6 +11,12 @@ public class BossBrain: EnemyBase
     public int summonCount;
 
 
+    protected override void Start()
+    {
+        //必须调用父类的Start方法，会初始化状态机
+        base.Start();
+        CutsceneManager.Instance.PlayBossIntro(transform);
+    }
     protected override IEnemyState GetInitialState()
     {
         //Boss 出生直接进入Idle状态

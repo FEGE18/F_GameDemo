@@ -39,6 +39,10 @@ public class GameManager : MonoBehaviour
         GameObject playerPrefab = Resources.Load<GameObject>(roleInfo.res);
         GameObject player = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
 
+        //把玩家控制脚本赋值给场景CG脚本
+        PlayerController playerCtrl = player.GetComponent<PlayerController>();
+        CutsceneManager.Instance.RegisterPlayer(playerCtrl);
+
         //把摄像机的跟随目标指向生成的角色
         CameraController camCtrl = Camera.main.GetComponent<CameraController>();
         camCtrl.target = player.transform;
