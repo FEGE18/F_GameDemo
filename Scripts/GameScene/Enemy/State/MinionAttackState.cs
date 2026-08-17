@@ -32,7 +32,7 @@ public class MinionAttackState : IEnemyState
             _lastAtkTime = Time.time;
             enemy.AnimCtrl.TriggerAtk();
 
-            // 实际伤害由 动画事件 OnAttackHit() 处理
+            // 实际伤害由动画事件 AtkEvent() 处理
         }
     }
 
@@ -43,7 +43,7 @@ public class MinionAttackState : IEnemyState
 
     private void FaceTarget(EnemyBase enemy)
     {
-        Vector3 dir = (enemy.Target.position - enemy.transform.position);
+        Vector3 dir = enemy.Target.position - enemy.transform.position;
         dir.y = 0;  // 只在水平面转向，不仰头俯身
         //magnitude要开根号（√(x²+y²+z²)），计算量大 ； dir.sqrMagnitude直接 x²+y²+z²，省掉开根号
         //"这个向量是不是快零了"这件事，用平方比较完全够，不需要开根号

@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 //状态只是一个"行为契约"，它不需要数据字段，不需要共用实现。
-//状态的数据都在 EnemyBase 里，状态只是操作它
+//敌人的共享数据和组件集中在 EnemyBase，某个状态独有的临时数据可以保存在具体状态对象中。
+//状态只是操作它
 public interface IEnemyState
 {
     /// <summary>
