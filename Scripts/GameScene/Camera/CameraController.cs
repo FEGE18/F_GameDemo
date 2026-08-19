@@ -51,6 +51,11 @@ public class CameraController : MonoBehaviour
 
     [Header("遮挡检测")]
     public LayerMask obstacleMask;
+    //软遮挡层：草、树叶等可穿透的物体，摄像机穿过时不拉近，而是让物体变半透明
+    //在 Inspector 里把草、树叶所在的层勾选进来
+    public LayerMask transparentMask;
+    //摄像机穿过软遮挡物体时，物体的不透明度（0 = 完全透明，1 = 完全不透明）
+    public float transparentAlpha = 0.3f;
 
     //给SmoothDamp函数当作记录帧与帧之间速度状态的参数
     private Vector3 currentVelocity;
@@ -79,6 +84,11 @@ public class CameraController : MonoBehaviour
     private float currentOtsDist;
     private float currentOtsHeight;
     private float currentOtsOffset;
+
+    //软遮挡：记录"上一帧"正在被半透明化的物体集合
+    //每帧将本帧结果与上一帧对比：新穿过的物体设为半透明，已离开的物体恢复不透明
+    //用 HashSet 而非 List，是因为每帧要做"是否包含"查询，HashSet 的时间复杂度是 O(1)
+    private HashSet<Renderer> _currentTransparentObjects = new HashSet<Renderer>();
 
     [Header("过渡")]
     //过渡时间
@@ -340,6 +350,7 @@ public class CameraController : MonoBehaviour
         /* === 调试用：在Scene视图画出射线 ===
         Debug.DrawRay(rayOrigin, dirToCamera.normalized * distToCamera, Color.red);*/
 
+        // === 硬遮挡检测：墙、地形等不可穿透的物体 ===
         //发射射线
         if (Physics.Raycast(rayOrigin,  //从哪发射
         dirToCamera.normalized,         //往哪个方向发射，把方向向量变成单位向量
@@ -354,6 +365,15 @@ public class CameraController : MonoBehaviour
             //有遮挡：拉近摄像机
             return hit.point - dirToCamera.normalized * 0.3f;
         }
+
+        // === 软遮挡检测：草、树叶等可穿透的物体 ===
+        //用 RaycastAll 获取路径上"所有"软遮挡物体（不是只取第一个）
+        //为什么用 RaycastAll？因为草可能有好几层，摄像机可能同时穿过多棵草
+        RaycastHit[] softHits = Physics.RaycastAll(rayOrigin, dirToCamera.normalized, distToCamera, transparentMask);
+
+        //处理软遮挡：把本帧穿过的物体设为半透明，离开的物体恢复不透明
+        HandleTransparentObjects(softHits);
+
         //无遮挡：保持原位
         return desiredPosition;
     }
@@ -427,5 +447,126 @@ public class CameraController : MonoBehaviour
 
         //隐藏准星
         UIManager.Instance.GetPanel<GamePanel>().SetCrosshairShow(false);
+    }
+
+    // === 软遮挡处理 ===
+
+    /// <summary>
+    /// 处理软遮挡物体的透明度
+    /// </summary>
+    /// <param name="hits">本帧射线检测到的所有软遮挡物体</param>
+    private void HandleTransparentObjects(RaycastHit[] hits)
+    {
+        //临时集合：存储"本帧"正在穿过的物体
+        //为什么用 HashSet？因为下面要判断"上一帧的物体是否还在本帧"，HashSet 的 Contains 是 O(1)
+        HashSet<Renderer> currentFrameObjects = new HashSet<Renderer>();
+
+        //遍历本帧射线击中的所有物体
+        foreach (RaycastHit hit in hits)
+        {
+            //尝试获取碰撞体上的 Renderer 组件
+            //为什么要 GetComponent？因为 RaycastHit 只给了 Collider，我们要修改材质，材质在 Renderer 上
+            Renderer rend = hit.collider.GetComponent<Renderer>();
+
+            //如果这个物体没有 Renderer，跳过（理论上草和树叶都有 MeshRenderer）
+            if (rend == null) continue;
+
+            //把这个 Renderer 加入"本帧集合"
+            currentFrameObjects.Add(rend);
+
+            //如果这个物体"上一帧不在集合里"，说明是"新穿过的"，需要设为半透明
+            //为什么判断 !_currentTransparentObjects.Contains？避免每帧重复设置同一个物体的材质（性能优化）
+            if (!_currentTransparentObjects.Contains(rend))
+            {
+                SetTransparent(rend, true); //设为半透明
+            }
+        }
+
+        //现在要找"上一帧在集合里，但本帧不在了"的物体，把它们恢复不透明
+        //为什么要恢复？因为摄像机已经离开这个物体了，不需要再半透明了
+        //用 List 临时存储要移除的物体，因为不能在 foreach 遍历 HashSet 的同时修改它
+        List<Renderer> toRemove = new List<Renderer>();
+
+        foreach (Renderer rend in _currentTransparentObjects)
+        {
+            //如果"上一帧的物体"不在"本帧集合"里，说明已经离开了
+            if (!currentFrameObjects.Contains(rend))
+            {
+                SetTransparent(rend, false); //恢复不透明
+                toRemove.Add(rend);          //标记为要从集合里移除
+            }
+        }
+
+        //从"上一帧集合"里移除已经离开的物体
+        foreach (Renderer rend in toRemove)
+        {
+            _currentTransparentObjects.Remove(rend);
+        }
+
+        //把"本帧新穿过的物体"加入"上一帧集合"，供下一帧对比用
+        //为什么要 UnionWith？因为本帧可能同时穿过多个物体，全部加进去
+        _currentTransparentObjects.UnionWith(currentFrameObjects);
+    }
+
+    /// <summary>
+    /// 设置物体的透明度（假设使用 Standard Shader）
+    /// </summary>
+    /// <param name="rend">要设置的 Renderer</param>
+    /// <param name="transparent">true = 半透明，false = 不透明</param>
+    private void SetTransparent(Renderer rend, bool transparent)
+    {
+        //遍历这个 Renderer 上的所有材质（一个物体可能有多个材质）
+        foreach (Material mat in rend.materials)
+        {
+            if (transparent)
+            {
+                // === 设为半透明 ===
+                //Standard Shader 的透明模式需要修改三个属性：
+                //1. _Mode：渲染模式（0=Opaque 不透明，2=Fade 淡入淡出，3=Transparent 透明）
+                //   为什么用 3（Transparent）？因为 Fade 模式会让物体完全消失，Transparent 模式只是半透明
+                mat.SetInt("_Mode", 3);
+
+                //2. 渲染队列：Transparent 模式的队列是 3000
+                //   为什么要设队列？因为 Unity 按队列顺序渲染，透明物体必须在不透明物体之后渲染
+                mat.renderQueue = 3000;
+
+                //3. Shader 关键字：开启透明混合
+                //   为什么要设关键字？因为 Standard Shader 内部用关键字切换代码分支
+                mat.SetOverrideTag("RenderType", "Transparent");
+                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);       //源颜色混合模式
+                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); //目标颜色混合模式
+                mat.SetInt("_ZWrite", 0); //关闭深度写入（透明物体不写深度）
+                mat.DisableKeyword("_ALPHATEST_ON");          //关闭 Alpha Test
+                mat.EnableKeyword("_ALPHABLEND_ON");          //开启 Alpha Blend
+                mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");   //关闭预乘 Alpha
+
+                //4. 设置透明度
+                //   为什么用 _Color.a？因为 Standard Shader 的透明度存在主颜色的 Alpha 通道里
+                UnityEngine.Color color = mat.color;
+                color.a = transparentAlpha; //用 Inspector 里设置的透明度值
+                mat.color = color;
+            }
+            else
+            {
+                // === 恢复不透明 ===
+                //恢复为 Opaque 模式
+                mat.SetInt("_Mode", 0);
+                mat.renderQueue = 2000; //不透明物体的队列
+
+                //恢复 Shader 关键字
+                mat.SetOverrideTag("RenderType", "Opaque");
+                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+                mat.SetInt("_ZWrite", 1); //开启深度写入
+                mat.DisableKeyword("_ALPHATEST_ON");
+                mat.DisableKeyword("_ALPHABLEND_ON");
+                mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+
+                //恢复完全不透明
+                UnityEngine.Color color = mat.color;
+                color.a = 1f;
+                mat.color = color;
+            }
+        }
     }
 }
