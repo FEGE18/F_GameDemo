@@ -20,7 +20,8 @@ public class BossBrain: EnemyBase
     protected override IEnemyState GetInitialState()
     {
         //Boss 出生直接进入Idle状态
-        return new MinionIdleState();
+        //使用单例，不再 new，避免 GC
+        return MinionIdleState.Instance;
     }
 
     protected override void OnHurt()

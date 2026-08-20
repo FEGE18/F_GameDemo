@@ -20,6 +20,11 @@ public class TowerController : MonoBehaviour
     [Header("子弹预制体")]
     public GameObject bulletPrefab;
 
+    //子弹对象池是否已经初始化的标记
+    //为什么需要标记？因为多个防御塔共用一个静态池，只需要初始化一次
+    //如果每个塔都调用 InitPool，会造成不必要的重复检查
+    private static bool _bulletPoolInitialized = false;
+
 
     //由外部（放塔逻辑）调用，传入本塔的配置逻辑
     public void Init(TowerInfo info)
@@ -27,6 +32,24 @@ public class TowerController : MonoBehaviour
         _attackRange = info.atkRange;
         _attackDamage = info.atk;
         _attackInterval = info.atkInterval;
+
+        //初始化子弹对象池（只在第一座防御塔初始化时执行一次）
+        //为什么用静态标记？因为 Bullet 的对象池是静态的，所有防御塔共用
+        //如果不加标记，每座塔都会调用 InitPool，虽然内部有判断但仍然浪费
+        if (!_bulletPoolInitialized)
+        {
+            //从 bulletPrefab 的 GameObject 上获取 Bullet 组件
+            //为什么要 GetComponent？因为对象池需要的是 Bullet 组件，不是 GameObject
+            Bullet bulletComponent = bulletPrefab.GetComponent<Bullet>();
+
+            //初始化子弹池
+            //capacity: 50 表示预估同屏最多 50 发子弹（根据实际情况调整）
+            //maxSize: 200 表示池的硬上限，防止极端情况下无限扩容
+            Bullet.InitPool(bulletComponent, capacity: 50, maxSize: 200);
+
+            //标记已初始化，后续的防御塔不再重复初始化
+            _bulletPoolInitialized = true;
+        }
 
         //开始协程
         StartCoroutine(SelectTargetLoop());
@@ -60,9 +83,21 @@ public class TowerController : MonoBehaviour
         //更新上次攻击时间
         _lastAtkTime = Time.time;
 
-        //发射子弹，开始攻击
-        GameObject bulletObj = Instantiate(bulletPrefab, turretHead.position, turretHead.rotation);
-        bulletObj.GetComponent<Bullet>().Init(_target, _attackDamage);
+        //从对象池中生成子弹（替代 Instantiate）
+        //Spawn 方法内部会从池中取出对象，并设置位置和旋转
+        Bullet bullet = Bullet.Spawn(turretHead.position, turretHead.rotation);
+
+        //生成失败（池已满或未初始化）
+        if (bullet == null)
+        {
+            //记录警告，但不中断游戏逻辑
+            //实际项目中可以根据需求决定是否要做降级处理（比如用 Instantiate 兜底）
+            Debug.LogWarning("[TowerController] 子弹生成失败");
+            return;
+        }
+
+        //初始化子弹的业务数据（目标和伤害）
+        bullet.Init(_target, _attackDamage);
     }
 
     private IEnumerator SelectTargetLoop()

@@ -2,7 +2,31 @@ using UnityEngine;
 
 public class MinionAttackState : IEnemyState
 {
-    private float _lastAtkTime = -999f;  // 初始化为很小的值，保证进入状态就能立刻攻击
+    // === 单例模式 ===
+    //静态单例：所有敌人共用同一个 Attack 状态对象，避免每次切换状态都 new 造成 GC
+    //为什么可以共用？因为攻击冷却数据（_lastAtkTime）已经移到 EnemyBase 里了
+    //每个敌人有自己的 LastAttackTime，不会互相干扰
+    private static MinionAttackState _instance;
+
+    //获取单例实例（懒加载：第一次访问时才创建）
+    public static MinionAttackState Instance
+    {
+        get
+        {
+            //如果还没创建过，就创建一次（整个游戏生命周期只创建一次）
+            if (_instance == null)
+            {
+                _instance = new MinionAttackState();
+            }
+            return _instance;
+        }
+    }
+
+    //私有构造函数：防止外部使用 new MinionAttackState()
+    //强制外部只能通过 Instance 属性获取单例
+    private MinionAttackState() { }
+
+    // === 状态行为 ===
 
     public void Enter(EnemyBase enemy)
     {
@@ -18,18 +42,22 @@ public class MinionAttackState : IEnemyState
         FaceTarget(enemy);
 
         float dist = Vector3.Distance(enemy.transform.position, enemy.Target.position);
-        
-        // 玩家跑出了攻击距离 → 切回追击
+
+        // 玩家跑出了攻击距离 → 切回追击（使用单例，不再 new）
         if (dist > enemy.Stats.attackRange * 1.3f)
         {
-            enemy.ChangeState(new MinionChaseState());
+            enemy.ChangeState(MinionChaseState.Instance);
             return;
         }
 
         // 冷却结束 → 执行一次攻击
-        if (Time.time - _lastAtkTime >= enemy.Stats.atkInterval)
+        //从 EnemyBase 读取上次攻击时间（不再用实例字段）
+        //为什么要从 EnemyBase 读？因为状态对象是单例，多个敌人共用
+        //如果用实例字段，敌人 A 攻击后，敌人 B 也会受到冷却影响
+        if (Time.time - enemy.LastAttackTime >= enemy.Stats.atkInterval)
         {
-            _lastAtkTime = Time.time;
+            //更新 EnemyBase 的攻击时间戳
+            enemy.LastAttackTime = Time.time;
             enemy.AnimCtrl.TriggerAtk();
 
             // 实际伤害由动画事件 AtkEvent() 处理
